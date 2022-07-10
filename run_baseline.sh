@@ -28,6 +28,6 @@ baseline=("GCN" "cGCN" "mGCN" "FedGCN" "FedmGCN" "local_GCN")
 
 for bl in ${baseline[@]}; do
   for k in ${foldk[@]}; do
-    python /home/hxie45/priv/project2021/scripts/src/baselines_dgl.py --baseline ${bl} --foldk ${k} --dataset ${dataset} --datapath ${datapath} --outpath ${outpath_baseline} --test_linktypes ${test_linktypes} --partition ${partition} --nfeature ${nfeature} --nclass ${nclass} --nlinktype ${nlinktype} --nClients ${nClients} --task ${task} --lr ${lr} --weight_decay ${weight_decay} --dropout ${dropout} --num_iterEM ${num_iterEM} --num_round ${num_round}
+    python src/trainers/baselines.py --baseline ${bl} --foldk ${k} --dataset ${dataset} --datapath ${datapath} --outpath ${outpath_baseline} --test_linktypes ${test_linktypes} --partition ${partition} --nfeature ${nfeature} --nclass ${nclass} --nlinktype ${nlinktype} --nClients ${nClients} --task ${task} --lr ${lr} --weight_decay ${weight_decay} --dropout ${dropout} --num_iterEM ${num_iterEM} --num_round ${num_round}
   done
 done
