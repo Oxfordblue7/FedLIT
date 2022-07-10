@@ -12,7 +12,7 @@ import dgl
 import wandb
 
 from ..utils.setup_devices import *
-from ..utils.utils import _output_results, _to_wandb, _track_centers, _track_kGradNorms
+from ..utils.util import _output_results, _to_wandb, _track_centers, _track_kGradNorms
 
 
 def run_fedLIT(server, clients, globaldata, foldk, num_rounds, local_epoch, outpath, samp=None, frac=1.0):

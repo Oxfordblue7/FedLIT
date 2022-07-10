@@ -3,7 +3,7 @@ import time
 import pandas as pd
 import torch
 
-from ..utils.utils import accuracy_dgl, loss_ce, loss_rmse, metric_rmsle, metric_mae, _to_wandb
+from ..utils.util import accuracy_dgl, loss_ce, loss_rmse, metric_rmsle, metric_mae, _to_wandb
 
 
 class CentralDevice_basic():

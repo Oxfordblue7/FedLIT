@@ -6,7 +6,7 @@ import dgl
 import time
 
 
-from ..utils.utils import _subgraph_byLinktype, loss_ce, accuracy_dgl, loss_rmse, metric_mae, metric_rmsle
+from ..utils.util import _subgraph_byLinktype, loss_ce, accuracy_dgl, loss_rmse, metric_mae, metric_rmsle
 
 class Client_NC():
     def __init__(self, id, model, data, optimizer, args):

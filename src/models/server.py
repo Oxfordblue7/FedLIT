@@ -4,7 +4,7 @@ from numpy import unravel_index
 from sklearn.metrics.pairwise import cosine_similarity
 import torch
 
-from ..utils.utils import _subgraph_byLinktype, loss_ce, accuracy_dgl, loss_rmse, metric_rmsle, metric_mae, _track_kGradDistances
+from ..utils.util import _subgraph_byLinktype, loss_ce, accuracy_dgl, loss_rmse, metric_rmsle, metric_mae, _track_kGradDistances
 
 
 class Server():
