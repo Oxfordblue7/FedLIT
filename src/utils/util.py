@@ -40,14 +40,11 @@ def _track_centers(groups, ids_clients):
     g = {}
     g_clients = {}
     for (client_id, idx_cluster), idx_group in groups.items():
-        # print((client_id, idx_cluster), idx_group)
         if idx_group not in g:
             g[idx_group] = []
             g_clients[idx_group] = []
         g[idx_group].append(ids_clients[client_id].centroids[idx_cluster].clone().cpu().numpy())
         g_clients[idx_group].append(client_id)
-    # for k, v in g.items():
-    #     print([vv[:5] for vv in v])
     return (g, g_clients)
 
 def _track_kGradNorms(client, nlinktype):
@@ -135,4 +132,3 @@ def exact_match_ratio(pred, target):
     return (pred > 0.5).eq(target).sum(axis=1).true_divide(target.size()[1]).sum().true_divide(target.size()[0])
 ## ------------------------------------------------------------- ##
 
-# metrics: evaluate for each label (vertical); micro/macro to get rid of unbalance

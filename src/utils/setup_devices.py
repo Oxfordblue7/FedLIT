@@ -31,7 +31,6 @@ def prepare_data(datapath, str_linktypes, foldk):
     linktypes = str_linktypes.split('-')
     clientData = {}   # key: link-type, value: (graph, train_size)
     for ltype in linktypes:
-        print("  link type:", ltype)
         cvfolder = 'dgl_cv_folds_oracle_10'
         dglG = load_graphs(os.path.join(datapath, f'graph_oracle_linkType{ltype}.bin'))[0][0]
         dglG = _get_fold(datapath, dglG, cvfolder, foldk, f'linkType{ltype}')
@@ -39,9 +38,6 @@ def prepare_data(datapath, str_linktypes, foldk):
         dglG.ndata['label_mask'] = dglG.ndata['label_mask'].to(torch.bool)
 
         clientData[ltype] = (dglG, len(dglG.ndata['train_mask'].nonzero()))
-
-        counter = collections.Counter(dglG.edata['edge_type'].cpu().numpy())
-        print(f"        link-type distribution: {counter}")
 
     return clientData
 
@@ -55,7 +51,6 @@ def prepare_local_data_distinct(datapath, foldk):
             groups = re.search(r'graph_client(\d+)_linktype(\d+).bin', filename)
             idxc = groups.group(1)
             ltype = groups.group(2)
-            print(f"    client {idxc}: linktype - {ltype}")
 
             dglG = load_graphs(os.path.join(datapath, filename))[0][0]
             dglG = _get_fold(datapath, dglG, cvfolder, foldk, f'client{idxc}_linktype{ltype}')
@@ -64,8 +59,6 @@ def prepare_local_data_distinct(datapath, foldk):
 
             clientData[f'{idxc}_{ltype}'] = (dglG, len(dglG.ndata['train_mask'].nonzero()))
 
-            counter = collections.Counter(dglG.edata['edge_type'].cpu().numpy())
-            print(f"        link-type distribution: {counter}")
     return clientData
 
 
@@ -74,7 +67,6 @@ def prepare_local_data_common_nodeset(datapath, str_linktypes, device):
     allData = {}
     linktypes = str_linktypes.split('-') + [str_linktypes]
     for ltype in linktypes:
-        print("  link type:", ltype)
         dglG = load_graphs(os.path.join(datapath, 'graphs_common_nodeset', f'graph_oracle_linkType{ltype}.bin'))[0][0]
         dglG.ndata['train_mask'] = dglG.ndata['train_mask'].to(torch.bool)
         dglG.ndata['test_mask'] = dglG.ndata['test_mask'].to(torch.bool)
@@ -94,7 +86,6 @@ def prepare_local_data_oneDominant(datapath, foldk):
             groups = re.search(r'graph_client(\d+)_linktype(\d+).bin', filename)
             idxc = groups.group(1)
             ltype = groups.group(2)
-            print(f"    client {idxc}: linktype - {ltype}")
 
             dglG = load_graphs(os.path.join(datapath, filename))[0][0]
             dglG = _get_fold(datapath, dglG, cvfolder, foldk, f'client{idxc}_linktype{ltype}')
@@ -103,8 +94,6 @@ def prepare_local_data_oneDominant(datapath, foldk):
 
             clientData[f'{idxc}_{ltype}'] = (dglG, len(dglG.ndata['train_mask'].nonzero()))
 
-            counter = collections.Counter(dglG.edata['edge_type'].cpu().numpy())
-            print(f"        link-type distribution: {counter}")
     return clientData
 
 
@@ -116,7 +105,6 @@ def prepare_local_data_balanced(datapath, foldk):
         if filename.startswith('graph_'):
             groups = re.search(r'graph_client(\d+).bin', filename)
             idxc = groups.group(1)
-            print(f"    client {idxc}")
 
             dglG = load_graphs(os.path.join(datapath, filename))[0][0]
             dglG = _get_fold(datapath, dglG, cvfolder, foldk, f'client{idxc}')
@@ -125,8 +113,6 @@ def prepare_local_data_balanced(datapath, foldk):
 
             clientData[idxc] = (dglG, len(dglG.ndata['train_mask'].nonzero()))
 
-            counter = collections.Counter(dglG.edata['edge_type'].cpu().numpy())
-            print(f"        link-type distribution: {counter}")
     return clientData
 
 def prepare_global_data(datapath, str_linktypes, foldk, device):

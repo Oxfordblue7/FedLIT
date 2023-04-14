@@ -21,8 +21,9 @@ lr=0.01
 weight_decay=0.0005
 dropout=0.5
 
-foldk=(0 1 2 3 4 5 6 7 8 9)
+foldk=(0)
+# foldk=(0 1 2 3 4 5 6 7 8 9)
 
 for k in ${foldk[@]}; do
-  python src/trainers/FedLIT_trainer.py --foldk ${k} --dataset ${dataset} --datapath ${datapath} --outpath ${outpath} --test_linktypes ${test_linktypes} --partition ${partition} --nfeature ${nfeature} --nclass ${nclass} --nlinktype ${nlinktype} --nClients ${nClients} --task ${task} --lr ${lr} --weight_decay ${weight_decay} --dropout ${dropout} --num_iterEM ${num_iterEM} --num_round ${num_round}
+  python -m src.trainers.FedLIT_trainer --foldk ${k} --dataset ${dataset} --datapath ${datapath} --outpath ${outpath} --test_linktypes ${test_linktypes} --partition ${partition} --nfeature ${nfeature} --nclass ${nclass} --nlinktype ${nlinktype} --nClients ${nClients} --task ${task} --lr ${lr} --weight_decay ${weight_decay} --dropout ${dropout} --num_iterEM ${num_iterEM} --num_round ${num_round}
 done

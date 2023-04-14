@@ -9,13 +9,14 @@ import torch
 import numpy as np
 
 import dgl
-import wandb
+# import wandb
+# os.environ["WANDB_SILENT"] = "true"
 
 from ..models.models import GCN
 from ..models.baseline_devices import CentralDevice_basic, FL_client, FL_server
 from ..models.client import _copy_shared_layer, _copy_branch
-from ..utils.setup_devices import *
-from ..utils.util import loss_ce, accuracy_dgl, loss_rmse, metric_rmsle, metric_mae, _output_results, _to_wandb
+from src.utils.setup_devices import *
+from src.utils.util import loss_ce, accuracy_dgl, loss_rmse, metric_rmsle, metric_mae, _output_results, _to_wandb
 
 
 def run_GCN(data, foldk, epoch, outpath):
@@ -25,17 +26,19 @@ def run_GCN(data, foldk, epoch, outpath):
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, weight_decay=args.weight_decay)
     central_device = CentralDevice_basic(model, data, optimizer, args)
     central_device.train(epoch, 'global')
-    outfile = os.path.join(outpath, f'{foldk}_trainhistory_trainval_GCN.csv')
-    central_device.trainhistory.to_csv(outfile, header=True, index=True)
-    print(f"Wrote to: {outfile}")
 
     test_loss, test_metrics = central_device.evaluate('test_mask')
     outfile = os.path.join(outpath, f'{foldk}_result_GCN.csv')
     df = pd.DataFrame()
     _output_results(df, 'GCN', test_loss, test_metrics, 'test')
-    _to_wandb(f'global_test', None, test_loss, test_metrics)
+    # _to_wandb(f'global_test', None, test_loss, test_metrics)
     df.to_csv(outfile, header=True, index=True)
     print(f"Wrote to: {outfile}")
+
+    print("=======================================================")
+    print(f"Test loss = {test_loss}; {test_metrics}")
+    print("-------------------------------------------------------")
+
 
 def run_local_GCN(clientData, foldk, epoch, outpath):
     """ run on local graphs with a basic GCN model """
@@ -47,19 +50,18 @@ def run_local_GCN(clientData, foldk, epoch, outpath):
         central_device = CentralDevice_basic(model, data[0], optimizer, args)
         central_device.train(epoch, f'client{cid}')
 
-        outfile = os.path.join(outpath, f'{foldk}_trainhistory_trainval_local_GCN_client{cid}.csv')
-        central_device.trainhistory.to_csv(outfile, header=True, index=True)
-        print(f"Wrote to: {outfile}")
-
         # evaluating
         test_loss, test_metrics = central_device.evaluate('test_mask')
-        # df_test_local.loc[linktype, ['test_loss', 'test_acc']] = [test_loss, test_acc]
         _output_results(df_test_local, cid, test_loss, test_metrics, 'test')
-        _to_wandb(f'client{cid}_test', None, test_loss, test_metrics)
+        # _to_wandb(f'client{cid}_test', None, test_loss, test_metrics)
 
     outfile = os.path.join(outpath, f'{foldk}_result_local_GCN.csv')
     df_test_local.to_csv(outfile, header=True, index=True)
     print(f"Wrote to: {outfile}")
+
+    print("=======================================================")
+    print(f"Test loss = {test_loss}; {test_metrics}")
+    print("-------------------------------------------------------")
 
 def run_cGCN(data, foldk, epoch, outpath):
     """ run on the global graph with a cGCN """
@@ -69,29 +71,25 @@ def run_cGCN(data, foldk, epoch, outpath):
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr, weight_decay=args.weight_decay)
     central_device = Client_NC(0, model, (data, None), optimizer, args)
 
-    df_trainhistory = pd.DataFrame()
     for e in range(epoch):
         if e % 20 == 0:
             print(f'  round {e}')
         central_device.train(1)
         (train_loss, train_metrics, val_loss, val_metrics) = central_device.evaluate('train_val_mask')
-        # df_trainhistory.loc[e, ['train_loss', 'train_acc', 'val_loss', 'val_acc']] = [train_loss, train_acc, val_loss, val_acc]
-        _output_results(df_trainhistory, e, train_loss, train_metrics, 'train')
-        _to_wandb('global_train', e, train_loss, train_metrics)
-        _output_results(df_trainhistory, e, val_loss, val_metrics, 'val')
-        _to_wandb('global_val', e, val_loss, val_metrics)
-    outfile = os.path.join(outpath, f'{foldk}_trainhistory_trainval_cGCN.csv')
-    df_trainhistory.to_csv(outfile, header=True, index=True)
-    print(f"Wrote to: {outfile}")
+        # _to_wandb('global_train', e, train_loss, train_metrics)
+        # _to_wandb('global_val', e, val_loss, val_metrics)
 
     (test_loss, test_metrics) = central_device.evaluate('test_mask')
     outfile = os.path.join(outpath, f'{foldk}_result_cGCN.csv')
     df = pd.DataFrame()
     _output_results(df, 'cGCN', test_loss, test_metrics, 'test')
-    _to_wandb('global_test', None, test_loss, test_metrics)
+    # _to_wandb('global_test', None, test_loss, test_metrics)
     df.to_csv(outfile, header=True, index=True)
     print(f"Wrote to: {outfile}")
 
+    print("=======================================================")
+    print(f"Test loss = {test_loss}; {test_metrics}")
+    print("-------------------------------------------------------")
 
 def run_mGCN(data, foldk, linktypes, epoch, task, outpath):
     """ run on the oracle graph (linktype known) with a mGCN """
@@ -107,7 +105,6 @@ def run_mGCN(data, foldk, linktypes, epoch, task, outpath):
         loss_func = loss_rmse
         metric_func = {'rmsle': metric_rmsle, 'mae': metric_mae}
 
-    df_trainhistory = pd.DataFrame()
     subgraphs = None
     metrics_train = {}
     for e in range(epoch):
@@ -131,23 +128,21 @@ def run_mGCN(data, foldk, linktypes, epoch, task, outpath):
         optimizer.step()
 
         loss_val, metrics_val = _evaluate_mGCN(model, data, subgraphs, 'val_mask', loss_func, metric_func, args.device)
-        _output_results(df_trainhistory, e, loss_train.item(), metrics_train, 'train')
-        _to_wandb('global_train', e, loss_train.item(), metrics_train)
-        _output_results(df_trainhistory, e, loss_val, metrics_val, 'val')
-        _to_wandb('global_val', e, loss_val, metrics_val)
-
-    outfile = os.path.join(outpath, f'{foldk}_trainhistory_trainval_mGCN.csv')
-    df_trainhistory.to_csv(outfile, header=True, index=True)
-    print(f"Wrote to: {outfile}")
+        # _to_wandb('global_train', e, loss_train.item(), metrics_train)
+        # _to_wandb('global_val', e, loss_val, metrics_val)
 
     # evaluate
     loss_test, metrics_test = _evaluate_mGCN(model, data, subgraphs, 'test_mask', loss_func, metric_func, args.device)
     outfile = os.path.join(outpath, f'{foldk}_result_mGCN.csv')
     df = pd.DataFrame()
     _output_results(df, 'mGCN', loss_test, metrics_test, 'test')
-    _to_wandb('global_test', None, loss_test, metrics_test)
+    # _to_wandb('global_test', None, loss_test, metrics_test)
     df.to_csv(outfile, header=True, index=True)
     print(f"Wrote to: {outfile}")
+
+    print("=======================================================")
+    print(f"Test loss = {loss_test}; {metrics_test}")
+    print("-------------------------------------------------------")
 
 def _subgraph_byLinktype(data, clusters, linktypes, device):
     """ for DGL data """
@@ -175,7 +170,6 @@ def _evaluate_mGCN(model, data, subgraphs, mask, loss_func, metric_func, device)
 def run_FedmGCN(globaldata, clientData, foldk, linktypes, num_round, local_epoch, task, outpath):
     """ run FL with mGCN on oracle graphs """
     print('> Run Fed-mGCN baseline ...')
-    start = time.time()
     clients = []
     for cid_ltype, data in clientData.items():
         cmodel = multichannel_GCN(args.nlinktype, args.nfeature, args.nhidden, args.nclass, args.nlayer, args.dropout,
@@ -197,21 +191,16 @@ def run_FedmGCN(globaldata, clientData, foldk, linktypes, num_round, local_epoch
     for client in clients:
         client.download_from_server(server)
 
-    trainhistory_local = {}
-    df_trainhistory_global = pd.DataFrame()
     subgraphs = {client.id: None for client in clients}
     subgraphs_global = None
     ids_clients = {client.id: client for client in clients}
     for r in range(num_round):
-        print(f" round {r}")
+        if r % 20 == 0:
+            print(f" round {r}")
         for client in clients:
             client.model.train()
             subgraphs[client.id], loss_train, metrics_train = _train_FedmGCN(r, local_epoch, client, linktypes, subgraphs[client.id], loss_func, metric_func)
-            # store training history (in local level)
-            if client.id not in trainhistory_local:
-                trainhistory_local[client.id] = pd.DataFrame()
-            _output_results(trainhistory_local[client.id], r, loss_train.item(), metrics_train, 'train')
-            _to_wandb(f'client{client.id}_train', r, loss_train.item(), metrics_train)
+            # _to_wandb(f'client{client.id}_train', r, loss_train.item(), metrics_train)
 
         if r == 0:  # for the first time
             # assign server's groups
@@ -230,31 +219,18 @@ def run_FedmGCN(globaldata, clientData, foldk, linktypes, num_round, local_epoch
             _download_from_server(server, client)
             # evaluate local validation data
             loss_val, metrics_val = _evaluate_mGCN(client.model, client.data, subgraphs[client.id], 'val_mask', loss_func, metric_func, args.device)
-            # store training history (in local level)
-            _output_results(trainhistory_local[client.id], r, loss_val, metrics_val, 'val')
-            _to_wandb(f'client{client.id}_val', r, loss_val, metrics_val)
+            # _to_wandb(f'client{client.id}_val', r, loss_val, metrics_val)
 
         # evaluate on the global val data
         val_loss, metrics_val = _evaluate_mGCN(server.model, globaldata, subgraphs_global, 'val_mask', loss_func, metric_func, args.device)
-        _output_results(df_trainhistory_global, r, val_loss, metrics_val, 'val')
-        _to_wandb(f'global_val', r, val_loss, metrics_val)
-
-    # write to files
-    for client_id, df in trainhistory_local.items():
-        outfile = os.path.join(outpath, f'{foldk}_trainhistory_trainval_FedmGCN_local_client{client_id}.csv')
-        df.to_csv(outfile, header=True, index=True)
-        print(f"Wrote to {outfile}")
-
-    outfile = os.path.join(outpath, f'{foldk}_trainhistory_val_FedmGCN_global.csv')
-    df_trainhistory_global.to_csv(outfile, header=True, index=True)
-    print(f"Wrote to {outfile}")
+        # _to_wandb(f'global_val', r, val_loss, metrics_val)
 
     # evaluate on the test data
     df_test_local = pd.DataFrame()
     for client in clients:
         test_loss, metrics_test = _evaluate_mGCN(client.model, client.data, subgraphs[client.id], 'test_mask', loss_func, metric_func, args.device)
         _output_results(df_test_local, client.id, test_loss, metrics_test, 'test')
-        _to_wandb(f'client{client.id}_test', None, test_loss, metrics_test)
+        # _to_wandb(f'client{client.id}_test', None, test_loss, metrics_test)
     outfile = os.path.join(outpath, f'{foldk}_result_FedmGCN_local.csv')
     df_test_local.to_csv(outfile, header=True, index=True)
     print(f"Wrote to {outfile}")
@@ -262,12 +238,15 @@ def run_FedmGCN(globaldata, clientData, foldk, linktypes, num_round, local_epoch
     df_test_global = pd.DataFrame()
     test_loss, metrics_test = _evaluate_mGCN(server.model, globaldata, subgraphs_global, 'test_mask', loss_func, metric_func, args.device)
     _output_results(df_test_global, 'FedmGCN', test_loss, metrics_test, 'test')
-    _to_wandb(f'global_test', None, test_loss, metrics_test)
+    # _to_wandb(f'global_test', None, test_loss, metrics_test)
     outfile = os.path.join(outpath, f'{foldk}_result_FedmGCN_global.csv')
     df_test_global.to_csv(outfile, header=True, index=True)
     print(f"Wrote to {outfile}")
 
-    print("Total time:", time.time()-start)
+    print("=======================================================")
+    print(f"Test loss = {test_loss}; {metrics_test}")
+    print("-------------------------------------------------------")
+
 
 def _train_FedmGCN(r, local_epoch, client, linktypes, subgraphs, loss_func, metric_func):
     metrics_train = {}
@@ -321,19 +300,13 @@ def run_FedGCN(globaldata, clientData, foldk, num_round, local_epoch, outpath):
     for client in clients:
         client.download_from_server(server)
 
-    trainhistory_local = {}
-    df_trainhistory_global = pd.DataFrame()
     for r in range(num_round):
         if r % 20 == 0:
             print(f'  round {r}')
         for client in clients:
             (train_loss, train_metrics, val_loss, val_metrics) = client.local_train(local_epoch)
-            if client.id not in trainhistory_local:
-                trainhistory_local[client.id] = pd.DataFrame()
-            _output_results(trainhistory_local[client.id], r, train_loss, train_metrics, 'train')
-            _to_wandb(f'client{client.id}_train', r, train_loss, train_metrics)
-            _output_results(trainhistory_local[client.id], r, val_loss, val_metrics, 'val')
-            _to_wandb(f'client{client.id}_val', r, val_loss, val_metrics)
+            # _to_wandb(f'client{client.id}_train', r, train_loss, train_metrics)
+            # _to_wandb(f'client{client.id}_val', r, val_loss, val_metrics)
 
         server.aggregate(clients)
         for client in clients:
@@ -341,26 +314,14 @@ def run_FedGCN(globaldata, clientData, foldk, num_round, local_epoch, outpath):
 
         # evaluate on the global graph
         val_loss, val_metrics = server.evaluate(globaldata, 'val_mask')
-        _output_results(df_trainhistory_global, r, val_loss, val_metrics, 'val')
-        _to_wandb('global_val', r, val_loss, val_metrics)
-
-    # write local training history to files
-    for client_id, df in trainhistory_local.items():
-        outfile = os.path.join(outpath, f'{foldk}_trainhistory_trainval_FedGCN_local_client{client_id}.csv')
-        df.to_csv(outfile, header=True, index=True)
-        print(f"Wrote to: {outfile}")
-
-    outfile = os.path.join(outpath, f'{foldk}_trainhistory_val_FedGCN_global.csv')
-    df_trainhistory_global.to_csv(outfile, header=True, index=True)
-    print(f"Wrote to {outfile}")
+        # _to_wandb('global_val', r, val_loss, val_metrics)
 
     # evaluate on the test data (in local level)
     df_test_local = pd.DataFrame()
     for client in clients:
         test_loss, test_metrics = client.evaluate('test_mask')
-        # df_test_local.loc[client.id, ['test_loss', 'test_acc']] = [test_loss, test_acc]
         _output_results(df_test_local, client.id, test_loss, test_metrics, 'test')
-        _to_wandb(f'client{client.id}_test', None, test_loss, test_metrics)
+        # _to_wandb(f'client{client.id}_test', None, test_loss, test_metrics)
     outfile = os.path.join(outpath, f'{foldk}_result_FedGCN_local.csv')
     df_test_local.to_csv(outfile, header=True, index=True)
     print(f"Wrote to {outfile}")
@@ -369,11 +330,14 @@ def run_FedGCN(globaldata, clientData, foldk, num_round, local_epoch, outpath):
     df_test_global = pd.DataFrame()
     test_loss, test_metrics = server.evaluate(globaldata, 'test_mask')
     _output_results(df_test_global, 'FedGCN', test_loss, test_metrics, 'test')
-    _to_wandb('global_test', None, test_loss, test_metrics)
+    # _to_wandb('global_test', None, test_loss, test_metrics)
     outfile = os.path.join(outpath, f'{foldk}_result_FedGCN_global.csv')
     df_test_global.to_csv(outfile, header=True, index=True)
     print(f"Wrote to {outfile}")
 
+    print("=======================================================")
+    print(f"Test loss = {test_loss}; {test_metrics}")
+    print("-------------------------------------------------------")
 
 
 if __name__ == '__main__':
@@ -388,9 +352,9 @@ if __name__ == '__main__':
                         help='The output path.')
     parser.add_argument('--foldk', type=int, default=0,
                         help='The kth fold.')
-    parser.add_argument('--baseline', type=str, default='oracle',
+    parser.add_argument('--baseline', type=str, default='FedGCN',
                         help='The name of baselines.')
-    parser.add_argument('--partition', type=str, default='oneDominant',
+    parser.add_argument('--partition', type=str, default='dominant',
                         help='The way of data partitioning.')
     parser.add_argument('--nClients', type=int, default=4,
                         help='The number of clients to split (for balanced data partition).')
@@ -444,43 +408,39 @@ if __name__ == '__main__':
     args.device = "cuda" if torch.cuda.is_available() else "cpu"
 
     linktypes = [int(x) for x in args.test_linktypes.split("-")]
-    print(f'> Linktypes: {linktypes}')
 
     outpath = os.path.join(args.outpath, args.test_linktypes)
 
-    if not args.baseline.startswith('global'):
+    # wandb.init(
+    #     project="FedLIT",
+    #     name=f'baselines_{args.dataset}_{args.partition}_fold{args.foldk}',
+    #     config=args
+    # )
+
+    #print(f'> Baseline: {args.baseline}')
+    assert args.baseline in ['GCN', 'mGCN', 'cGCN', 'FedGCN', 'FedmGCN', 'local_GCN']
+
+    if args.baseline in ['FedGCN', 'FedmGCN', 'local_GCN']:
         print("> Loading local data ...")
-        assert args.partition in ['distinct', 'oneDominant', 'balanced']
+        assert args.partition in ['distinct', 'dominant', 'balanced']
         print(f'    {args.partition}')
         if args.partition == 'distinct':
             clientData = prepare_local_data_distinct(args.datapath, args.foldk)
             outpath = os.path.join(outpath, 'distinct')
-        if args.partition == 'oneDominant':
+        if args.partition == 'dominant':
             clientData = prepare_local_data_oneDominant(args.datapath, args.foldk)
-            outpath = os.path.join(outpath, 'oneDominant')
+            outpath = os.path.join(outpath, 'dominant')
         if args.partition == 'balanced':
             clientData = prepare_local_data_balanced(args.datapath, args.foldk)
             outpath = os.path.join(outpath, 'balanced')
         print("> Data loaded.")
 
-    wandb.init(
-        project="FedLIT",
-        name=f'baselines_{args.dataset}_{args.partition}_fold{args.foldk}',
-        config=args
-    )
-
     Path(outpath).mkdir(parents=True, exist_ok=True)
-
-    print(f'> Baseline: {args.baseline}')
-    assert args.baseline in ['GCN', 'mGCN', 'cGCN', 'FedGCN', 'FedmGCN', 'local_GCN']
-
-    # 6. local+1
-    if args.baseline == 'local_GCN':
-        run_local_GCN(clientData, args.foldk, args.num_round, outpath)
-
-    print("> Loading global data ...")
-    globalData = prepare_global_data(args.datapath, args.test_linktypes, args.foldk, args.device)
-    print("> Data loaded.")
+    
+    if args.baseline != 'local_GCN':
+        print("> Loading global data ...")
+        globalData = prepare_global_data(args.datapath, args.test_linktypes, args.foldk, args.device)
+        print("> Data loaded.")
 
     # 1. Fed-GCN
     if args.baseline == 'FedGCN':
@@ -491,9 +451,12 @@ if __name__ == '__main__':
     # 3. GCN
     if args.baseline == 'GCN':
         run_GCN(globalData, args.foldk, args.num_round, outpath)
-    # 5. mGCN
+    # 4. mGCN
     if args.baseline == 'mGCN':
         run_mGCN(globalData, args.foldk, linktypes, args.num_round, args.task, outpath)
-    # 4. cGCN
+    # 5. cGCN
     if args.baseline == 'cGCN':
         run_cGCN(globalData, args.foldk, args.num_round, outpath)
+    # 6. local GCN
+    if args.baseline == 'local_GCN':
+        run_local_GCN(clientData, args.foldk, args.num_round, outpath)

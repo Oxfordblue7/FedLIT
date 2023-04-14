@@ -69,10 +69,6 @@ class Server():
                 groups[idx_group] = []
             groups[idx_group].append(client_cluster)
         for idx_group, group in groups.items():
-            # total_size = 0
-            # print('server_group ', idx_group)
-            # for (client_id, idx_cluster) in group:
-            #     print('    ', 'client_id =', client_id, 'client_cluster =', idx_cluster, 'train_size =', ids_clients[client_id].cluster_train_size[idx_cluster])
             _aggregate_branch(self.Ws, ids_clients, idx_group, group)
 
         """ For analysis of FL client's contribution """
@@ -109,7 +105,6 @@ class Server():
             metrics = {}
             for mname, mfunc in self.metric_func.items():
                 metrics[mname] = mfunc(pred[data.ndata[mask]], data.ndata['y'][data.ndata[mask]])
-            # acc = accuracy_dgl(data, pred, mask)
         return loss, metrics
 
 
@@ -119,10 +114,8 @@ def _clear_groups(groups):
 
 def _update_groups(nlinktype, groups, client_id, cos_sim):
     for _ in range(nlinktype):
-        # (idx_cluster, idx_center) = unravel_index(torch.argmax(cos_sim), cos_sim.shape)
         (idx_cluster, idx_center) = unravel_index(cos_sim.cpu().argmax(), cos_sim.shape)
         groups[(client_id, idx_cluster)] = idx_center
-        # groups[idx_center].append((client_id, idx_cluster))
         cos_sim[idx_cluster, :] = -float('Inf')
         cos_sim[:, idx_center] = -float('Inf')
 

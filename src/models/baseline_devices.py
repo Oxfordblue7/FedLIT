@@ -36,7 +36,7 @@ class CentralDevice_basic():
             for mname, metric in metrics_train.items():
                 self.trainhistory.loc[e, f'train_{mname}'] = metric
 
-            _to_wandb(f'{prefix}_train', e, loss_train, metrics_train)
+            # _to_wandb(f'{prefix}_train', e, loss_train, metrics_train)
 
             if 'val_mask' in self.data.ndata:
                 loss_val, metrics_val = self.evaluate('val_mask')
@@ -44,7 +44,7 @@ class CentralDevice_basic():
                 for mname, metric in metrics_val.items():
                     self.trainhistory.loc[e, f'val_{mname}'] = metric
 
-                _to_wandb(f'{prefix}_val', e, loss_val, metrics_val)
+                # _to_wandb(f'{prefix}_val', e, loss_val, metrics_val)
 
 
     def evaluate(self, mask):
@@ -104,7 +104,6 @@ class FL_client():
             metrics = {}
             for mname, mfunc in self.metric_func.items():
                 metrics[mname] = mfunc(pred[self.data.ndata[mask]], self.data.ndata['y'][self.data.ndata[mask]])
-            # acc = accuracy_dgl(self.data, pred, mask)
 
         return loss, metrics
 

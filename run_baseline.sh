@@ -21,13 +21,15 @@ lr=0.01
 weight_decay=0.0005
 dropout=0.5
 
-foldk=(0 1 2 3 4 5 6 7 8 9)
+foldk=(0)
+#foldk=(0 1 2 3 4 5 6 7 8 9)
 
 ## for baselines
-baseline=("GCN" "cGCN" "mGCN" "FedGCN" "FedmGCN" "local_GCN")
+baseline=("FedGCN")
+#baseline=("GCN" "cGCN" "mGCN" "FedGCN" "FedmGCN" "local_GCN")
 
 for bl in ${baseline[@]}; do
   for k in ${foldk[@]}; do
-    python src/trainers/baselines.py --baseline ${bl} --foldk ${k} --dataset ${dataset} --datapath ${datapath} --outpath ${outpath_baseline} --test_linktypes ${test_linktypes} --partition ${partition} --nfeature ${nfeature} --nclass ${nclass} --nlinktype ${nlinktype} --nClients ${nClients} --task ${task} --lr ${lr} --weight_decay ${weight_decay} --dropout ${dropout} --num_iterEM ${num_iterEM} --num_round ${num_round}
+    python -m src.trainers.baselines --baseline ${bl} --foldk ${k} --dataset ${dataset} --datapath ${datapath} --outpath ${outpath_baseline} --test_linktypes ${test_linktypes} --partition ${partition} --nfeature ${nfeature} --nclass ${nclass} --nlinktype ${nlinktype} --nClients ${nClients} --task ${task} --lr ${lr} --weight_decay ${weight_decay} --dropout ${dropout} --num_iterEM ${num_iterEM} --num_round ${num_round}
   done
 done
