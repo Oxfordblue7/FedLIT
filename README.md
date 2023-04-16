@@ -56,8 +56,8 @@ outputs/${dataset}/${test_linktypes}/${partition}/${foldk}_result_global.csv
       author={Xie, Han and Xiong, Li and Yang, Carl},
       booktitle={Proceedings of the ACM Web Conference 2023},
       year={2023},
-      url = {https://doi.org/10.1145/3543507.3583471},
-      doi = {10.1145/3543507.3583471},
-      series = {WWW '23}
+      url={https://doi.org/10.1145/3543507.3583471},
+      doi={10.1145/3543507.3583471},
+      series={WWW '23}
 }
 ```
