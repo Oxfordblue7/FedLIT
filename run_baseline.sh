@@ -1,7 +1,7 @@
 ## run repeats
 dataset='pubmed_diabetes'
 datapath='./data/pubmed_diabetes/'
-outpath_baseline='./outputs/pubmed_diabetes/baselines_dgl'
+outpath_baseline='./outputs/pubmed_diabetes/baselines'
 test_linktypes='0-1-2-3'
 task='classification'
 partition='dominant'
